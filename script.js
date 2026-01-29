@@ -29,7 +29,7 @@ window.onload = async function () {
 };
 
 async function uygulamayiBaslat() {
-    const apiURL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/images`;
+    const apiURL = `https://api.github.com/repos/33halitsen/cografya/contents/images`;
 
     try {
         const response = await fetch(apiURL);
