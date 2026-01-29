@@ -121,3 +121,31 @@ canvas {
         flex-direction: column;
     }
 }
+
+/* Mevcut CSS'in en altına ekle */
+
+.footer-controls {
+    margin-top: 30px;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+}
+
+.btn-reset {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-reset:hover {
+    background-color: #5a6268;
+}
+
+.progress-info {
+    font-weight: bold;
+    color: #555;
+    margin: 5px 0;
+}

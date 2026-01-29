@@ -14,9 +14,12 @@
     <div class="main-container">
         <div class="header-info">
             <h2 id="soruBasligi">Yükleniyor...</h2>
+            <div class="progress-info">
+                <span id="soruSayaci">-- / --</span>
+            </div>
+
             <div class="nav-buttons">
-                <button onclick="yeniSoruGetir()" class="btn-next">Sıradaki Harita <i
-                        class="fas fa-random"></i></button>
+                <button onclick="sonrakiSoru()" class="btn-next">Sıradaki <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
 
@@ -38,6 +41,11 @@
             <div id="cevapKutusu" style="display: none;">
                 <img id="cevapGorseli" src="" alt="Cevap Anahtarı">
             </div>
+        </div>
+
+        <div class="footer-controls">
+            <button onclick="listeyiSifirla()" class="btn-reset"><i class="fas fa-sync-alt"></i> Listeyi Baştan
+                Karıştır</button>
         </div>
     </div>
 

@@ -1,174 +1,197 @@
-// --- AYARLAR ---
-// BURAYA DİKKAT: images klasörüne attığın cevap anahtarı resimlerinin adlarını buraya yazmalısın.
-// Dosya uzantıları (.jpg, .png) dahil olsun.
-const soruListesi = [
-    "Turkiye_Daglar.jpg",
-    "Turkiye_Ovalar.jpg",
-    "Turkiye_Platolar.jpg",
-    "Turkiye_Madenler.jpg",
-    "Turkiye_Iklim_Cesitleri.jpg"
-];
+// ==========================================
+// KULLANICI AYARLARI
+// ==========================================
+const GITHUB_KULLANICI_ADI = "kullanici_adin";
+const GITHUB_REPO_ADI = "repo_adin";
+// ==========================================
 
-// Değişkenler
-let aktifSoruIndex = 0;
-const canvas = document.getElementById('cizimTahtasi');
+const canvas = document.getElementById('cizimAlani');
 const ctx = canvas.getContext('2d');
-let cizimYapiyor = false;
-let aktifArac = 'kalem'; // 'kalem' veya 'yazi'
+let cizimModu = false;
+let aktifArac = 'kalem';
 
-// Canvas Boyutlandırma (Resim oranına göre)
-// Boş haritanın orijinal boyutlarını buraya girmen iyi olur, yoksa CSS ile esner.
-const tuvalGenislik = 800;
-const tuvalYukseklik = 450;
+canvas.width = 800;
+canvas.height = 400;
 
-canvas.width = tuvalGenislik;
-canvas.height = tuvalYukseklik;
+let soruListesi = [];
+let suankiSoruIndex = 0;
 
-// Başlangıç Ayarları
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-guncelleRenkVeKalinlik();
-soruyuYukle();
+// LocalStorage Anahtarları
+const LS_LISTE_KEY = 'cografya_soru_listesi';
+const LS_INDEX_KEY = 'cografya_soru_index';
 
-// --- TEMEL FONKSİYONLAR ---
+window.onload = async function () {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    aracGuncelle();
 
-function soruyuYukle() {
-    // 1. Başlığı Ayarla (Dosya isminden üret)
-    const dosyaAdi = soruListesi[aktifSoruIndex];
-    // Dosya uzantısını at (örn: .jpg) ve alt çizgileri boşluğa çevir
-    const baslik = dosyaAdi.split('.')[0].replace(/_/g, ' ');
+    await uygulamayiBaslat();
+};
 
-    document.getElementById('haritaBasligi').innerText = baslik;
-    document.getElementById('sayac').innerText = `${aktifSoruIndex + 1} / ${soruListesi.length}`;
+async function uygulamayiBaslat() {
+    const apiURL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/images`;
 
-    // 2. Cevap Resmini Hazırla (Ama gizle)
-    document.getElementById('cevapResmi').src = `images/${dosyaAdi}`;
-    document.getElementById('cevapAlani').style.display = 'none';
+    try {
+        const response = await fetch(apiURL);
+        if (!response.ok) throw new Error("GitHub bağlantı hatası");
 
-    // 3. Canvas'ı Temizle (Boş harita arka planda zaten CSS ile duruyor)
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const dosyalar = await response.json();
+
+        // GitHub'daki güncel ham dosya listesi (bos_harita hariç)
+        const guncelDosyalar = dosyalar
+            .filter(dosya => dosya.name.match(/\.(jpg|jpeg|png)$/i))
+            .filter(dosya => dosya.name !== 'bos_harita.jpg')
+            .map(dosya => dosya.name);
+
+        // --- LİSTE BİRLEŞTİRME VE KAYIT MANTIĞI ---
+
+        // 1. LocalStorage'da kayıtlı liste var mı?
+        const kayitliListeJson = localStorage.getItem(LS_LISTE_KEY);
+        const kayitliIndex = localStorage.getItem(LS_INDEX_KEY);
+
+        if (kayitliListeJson) {
+            let yerelListe = JSON.parse(kayitliListeJson);
+
+            // A. Silinenleri Temizle: GitHub'da artık olmayanları yerel listeden çıkar
+            yerelListe = yerelListe.filter(dosya => guncelDosyalar.includes(dosya));
+
+            // B. Yeni Eklenenleri Bul: GitHub'da olup yerel listede olmayanlar
+            const yeniEklenenler = guncelDosyalar.filter(dosya => !yerelListe.includes(dosya));
+
+            // C. Yenileri Sona Ekle
+            soruListesi = [...yerelListe, ...yeniEklenenler];
+
+            // İndeksi ayarla (Kaldığı yer)
+            suankiSoruIndex = kayitliIndex ? parseInt(kayitliIndex) : 0;
+
+            // Eğer indeks listenin dışına taştıysa (örn: sorular silindiyse) başa al
+            if (suankiSoruIndex >= soruListesi.length) suankiSoruIndex = 0;
+
+        } else {
+            // Hiç kayıt yoksa, listeyi al ve karıştır
+            soruListesi = guncelDosyalar;
+            listeyiKaristir(soruListesi);
+            suankiSoruIndex = 0;
+        }
+
+        // Güncel hali kaydet
+        kaydet();
+        soruyuEkranaYaz();
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById('soruBasligi').innerText = "Bağlantı Hatası veya Liste Boş";
+    }
 }
 
-function cevabiGoster() {
-    const cevapAlani = document.getElementById('cevapAlani');
-    if (cevapAlani.style.display === 'none') {
-        cevapAlani.style.display = 'block';
-        // Otomatik aşağı kaydır
-        cevapAlani.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        cevapAlani.style.display = 'none';
+// Listeyi ve İndeksi LocalStorage'a kaydeder
+function kaydet() {
+    localStorage.setItem(LS_LISTE_KEY, JSON.stringify(soruListesi));
+    localStorage.setItem(LS_INDEX_KEY, suankiSoruIndex);
+}
+
+// "Listeyi Baştan Karıştır" Butonu için
+function listeyiSifirla() {
+    if (confirm("Tüm ilerlemeniz sıfırlanacak ve liste yeniden karıştırılacak. Emin misiniz?")) {
+        listeyiKaristir(soruListesi);
+        suankiSoruIndex = 0;
+        kaydet();
+        soruyuEkranaYaz();
+        temizle(); // Ekrandaki çizimi de sil
     }
+}
+
+function listeyiKaristir(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function soruyuEkranaYaz() {
+    // Çizimi temizle
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('cevapKutusu').style.display = 'none';
+
+    if (soruListesi.length === 0) {
+        document.getElementById('soruBasligi').innerText = "Gösterilecek harita yok.";
+        return;
+    }
+
+    const dosyaAdi = soruListesi[suankiSoruIndex];
+    let baslik = dosyaAdi.split('.')[0].replace(/_/g, ' ');
+
+    document.getElementById('soruBasligi').innerText = baslik;
+    document.getElementById('soruSayaci').innerText = `${suankiSoruIndex + 1} / ${soruListesi.length}`;
+
+    document.getElementById('cevapGorseli').src = `images/${dosyaAdi}`;
 }
 
 function sonrakiSoru() {
-    if (aktifSoruIndex < soruListesi.length - 1) {
-        aktifSoruIndex++;
-        soruyuYukle();
-    } else {
-        alert("Sorular bitti! Başa dönülüyor.");
-        aktifSoruIndex = 0;
-        soruyuYukle();
+    suankiSoruIndex++;
+
+    // Liste bittiyse başa dönme ama karıştırma (Sırayı koru)
+    if (suankiSoruIndex >= soruListesi.length) {
+        alert("Tüm haritalar tamamlandı! Başa dönülüyor.");
+        suankiSoruIndex = 0;
     }
+
+    kaydet(); // Yeni sırayı kaydet
+    soruyuEkranaYaz();
 }
 
-function oncekiSoru() {
-    if (aktifSoruIndex > 0) {
-        aktifSoruIndex--;
-        soruyuYukle();
-    }
+function cevabiGosterGizle() {
+    const kutu = document.getElementById('cevapKutusu');
+    kutu.style.display = (kutu.style.display === 'none') ? 'block' : 'none';
+    if (kutu.style.display === 'block') kutu.scrollIntoView({ behavior: 'smooth' });
 }
 
-// --- ÇİZİM VE ARAÇ FONKSİYONLARI ---
-
-function aracSec(arac) {
-    aktifArac = arac;
-    // Buton stillerini güncelle
-    document.getElementById('btnKalem').className = arac === 'kalem' ? 'active-tool' : '';
-    document.getElementById('btnYazi').className = arac === 'yazi' ? 'active-tool' : '';
+// --- ÇİZİM ARAÇLARI (DEĞİŞMEDİ) ---
+function aracDegistir(tip) {
+    aktifArac = tip;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    if (tip === 'kalem') document.getElementById('btnKalem').classList.add('active');
+    if (tip === 'yazi') document.getElementById('btnYazi').classList.add('active');
 }
 
-function guncelleRenkVeKalinlik() {
-    ctx.strokeStyle = document.getElementById('renkSecici').value;
-    ctx.fillStyle = document.getElementById('renkSecici').value; // Yazı rengi için
-    ctx.lineWidth = document.getElementById('kalinlik').value;
-}
-
-function silgi() {
-    // Sadece çizimleri siler, arka plan resmini (CSS ile verildiği için) etkilemez
+function temizle() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-// Event Listeners (Renk ve Kalınlık değişimi için)
-document.getElementById('renkSecici').addEventListener('change', guncelleRenkVeKalinlik);
-document.getElementById('kalinlik').addEventListener('change', guncelleRenkVeKalinlik);
+function aracGuncelle() {
+    ctx.strokeStyle = document.getElementById('renkSecici').value;
+    ctx.fillStyle = document.getElementById('renkSecici').value;
+    ctx.lineWidth = document.getElementById('kalinlikAyari').value;
+}
 
-// --- MOUSE VE DOKUNMATİK EYLEMLERİ (ÇİZİM) ---
+document.getElementById('renkSecici').addEventListener('input', aracGuncelle);
+document.getElementById('kalinlikAyari').addEventListener('input', aracGuncelle);
 
-// Mouse olayları
 canvas.addEventListener('mousedown', basla);
 canvas.addEventListener('mouseup', bitir);
 canvas.addEventListener('mousemove', ciz);
-
-// Dokunmatik olayları (Telefonda çalışması için)
-canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Sayfanın kaymasını engelle
-    basla(e.touches[0]);
-});
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); basla(e.touches[0]); });
 canvas.addEventListener('touchend', bitir);
-canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    ciz(e.touches[0]);
-});
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); ciz(e.touches[0]); });
 
 function basla(e) {
-    if (aktifArac === 'yazi') {
-        metinEkle(e);
-        return;
-    }
-    cizimYapiyor = true;
-    ciz(e); // Nokta koyabilmek için tıklandığı an çiz
+    if (aktifArac === 'yazi') { yaziEkle(e); return; }
+    cizimModu = true; ciz(e);
 }
-
-function bitir() {
-    cizimYapiyor = false;
-    ctx.beginPath(); // Yeni çizgi için yolu sıfırla
-}
-
+function bitir() { cizimModu = false; ctx.beginPath(); }
 function ciz(e) {
-    if (!cizimYapiyor || aktifArac !== 'kalem') return;
-
-    // Mouse pozisyonunu canvas'a göre ayarla
+    if (!cizimModu || aktifArac !== 'kalem') return;
     const rect = canvas.getBoundingClientRect();
-
-    // Scale faktörünü hesapla (Canvas CSS ile küçültülmüşse koordinatları düzeltmek için)
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
 }
-
-// --- METİN EKLEME ---
-
-function metinEkle(e) {
-    const metin = prompt("Haritaya eklemek istediğiniz notu girin:");
+function yaziEkle(e) {
+    const metin = prompt("Yazı girin:");
     if (metin) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-
-        ctx.font = "bold 20px Arial";
-        ctx.fillText(metin, x, y);
-
-        // İşlem bitince kaleme geri dönmek istersen:
-        // aracSec('kalem');
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        ctx.font = "bold 20px Arial"; ctx.fillText(metin, x, y);
     }
 }
