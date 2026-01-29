@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPSS Coğrafya Dilsiz Harita</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="main-container">
+        <div class="header-info">
+            <h2 id="soruBasligi">Yükleniyor...</h2>
+            <div class="nav-buttons">
+                <button onclick="yeniSoruGetir()" class="btn-next">Sıradaki Harita <i
+                        class="fas fa-random"></i></button>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button onclick="aracDegistir('kalem')" class="tool-btn active" id="btnKalem"><i
+                    class="fas fa-pen"></i></button>
+            <button onclick="aracDegistir('yazi')" class="tool-btn" id="btnYazi"><i class="fas fa-font"></i></button>
+            <button onclick="temizle()" class="tool-btn"><i class="fas fa-eraser"></i> Sil</button>
+            <input type="color" id="renkSecici" value="#cc0000">
+            <input type="range" id="kalinlikAyari" min="2" max="10" value="3">
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="cizimAlani"></canvas>
+        </div>
+
+        <div class="answer-section">
+            <button onclick="cevabiGosterGizle()" class="btn-answer">Cevabı Göster / Gizle</button>
+            <div id="cevapKutusu" style="display: none;">
+                <img id="cevapGorseli" src="" alt="Cevap Anahtarı">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

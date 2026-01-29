@@ -1,0 +1,123 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    /* Harita genişliğine göre ayarlandı */
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+    text-transform: capitalize;
+    /* Başlıkları otomatik büyük harf yapar */
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.toolbar {
+    background: #e9ecef;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+button {
+    padding: 8px 15px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button.active-tool {
+    background-color: #004494;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.show-answer-btn {
+    background-color: #28a745;
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    margin-top: 15px;
+}
+
+.show-answer-btn:hover {
+    background-color: #218838;
+}
+
+/* Canvas ve Resim Ayarları */
+.canvas-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    /* Arka plana boş haritayı CSS ile koymuyoruz, JS ile çizeceğiz ki indirilebilsin */
+}
+
+canvas {
+    display: block;
+    cursor: crosshair;
+    background-image: url('images/bos_harita.jpg');
+    background-size: 100% 100%;
+    /* Resmi canvasa sığdır */
+    background-repeat: no-repeat;
+}
+
+.answer-container {
+    margin-top: 20px;
+    border-top: 2px dashed #ccc;
+    padding-top: 20px;
+}
+
+#cevapResmi {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 2px solid #28a745;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+
+    .controls,
+    .toolbar {
+        flex-direction: column;
+    }
+}
