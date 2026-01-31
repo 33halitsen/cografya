@@ -4,48 +4,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPSS Coğrafya Dilsiz Harita</title>
+    <title>KPSS Coğrafya Profesyonel Harita</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
 
     <div class="main-container">
-        <div class="header-info">
-            <h2 id="soruBasligi">Yükleniyor...</h2>
-            <div class="progress-info">
-                <span id="soruSayaci">-- / --</span>
-            </div>
 
-            <div class="nav-buttons">
+        <div class="header-info">
+            <h2 id="soruBasligi">Harita Yükleniyor...</h2>
+            <div class="controls-top">
                 <button onclick="sonrakiSoru()" class="btn-next">Sıradaki <i class="fas fa-arrow-right"></i></button>
             </div>
         </div>
 
-        <div class="toolbar">
-            <button onclick="aracDegistir('kalem')" class="tool-btn active" id="btnKalem"><i
-                    class="fas fa-pen"></i></button>
-            <button onclick="aracDegistir('yazi')" class="tool-btn" id="btnYazi"><i class="fas fa-font"></i></button>
-            <button onclick="temizle()" class="tool-btn"><i class="fas fa-eraser"></i> Sil</button>
-            <input type="color" id="renkSecici" value="#cc0000">
-            <input type="range" id="kalinlikAyari" min="2" max="10" value="3">
+        <div class="toolbar-container">
+            <div class="tool-group">
+                <button onclick="geriAl()" class="tool-btn" title="Geri Al (Ctrl+Z)"><i
+                        class="fas fa-undo"></i></button>
+                <button onclick="ileriAl()" class="tool-btn" title="İleri Al (Ctrl+Y)"><i
+                        class="fas fa-redo"></i></button>
+                <button onclick="herSeyiTemizle()" class="tool-btn danger" title="Tümünü Temizle"><i
+                        class="fas fa-trash-alt"></i></button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="tool-group">
+                <button onclick="aracDegistir('kalem')" class="tool-btn active" id="btnKalem" title="Kalem"><i
+                        class="fas fa-pen"></i></button>
+                <button onclick="aracDegistir('vurgu')" class="tool-btn" id="btnVurgu"
+                    title="Vurgulayıcı (Şeffaf Boya)"><i class="fas fa-highlighter"></i></button>
+                <button onclick="aracDegistir('silgi')" class="tool-btn" id="btnSilgi" title="Silgi"><i
+                        class="fas fa-eraser"></i></button>
+                <button onclick="aracDegistir('yazi')" class="tool-btn" id="btnYazi" title="Metin Ekle"><i
+                        class="fas fa-font"></i></button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="tool-group settings">
+                <div class="color-picker-wrapper">
+                    <input type="color" id="renkSecici" value="#e74c3c">
+                </div>
+                <input type="range" id="kalinlikAyari" min="1" max="30" value="3" title="Kalem Kalınlığı">
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="tool-group">
+                <button onclick="calismayiIndir()" class="tool-btn success" title="Resim Olarak İndir"><i
+                        class="fas fa-download"></i></button>
+            </div>
         </div>
 
         <div class="canvas-wrapper">
             <canvas id="cizimAlani"></canvas>
+            <div id="text-layer"></div>
+        </div>
+
+        <div class="tool-group settings">
+            <div class="color-picker-wrapper">
+                <input type="color" id="renkSecici" value="#e74c3c">
+            </div>
+            <label for="kalinlikAyari" style="font-size:12px; color:#555;">Boyut:</label>
+            <input type="range" id="kalinlikAyari" min="10" max="100" value="20" title="Kalem/Yazı Boyutu">
+        </div>
+
+        <div class="info-bar">
+            <span id="soruSayaci">-- / --</span>
         </div>
 
         <div class="answer-section">
-            <button onclick="cevabiGosterGizle()" class="btn-answer">Cevabı Göster / Gizle</button>
+            <button onclick="cevabiGosterGizle()" class="btn-answer">Cevap Anahtarını Göster</button>
             <div id="cevapKutusu" style="display: none;">
                 <img id="cevapGorseli" src="" alt="Cevap Anahtarı">
             </div>
         </div>
 
         <div class="footer-controls">
-            <button onclick="listeyiSifirla()" class="btn-reset"><i class="fas fa-sync-alt"></i> Listeyi Baştan
-                Karıştır</button>
+            <button onclick="listeyiSifirla()" class="btn-reset">Listeyi Karıştır & Sıfırla</button>
         </div>
     </div>
 
