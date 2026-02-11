@@ -4,88 +4,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPSS Coğrafya Profesyonel Harita</title>
+    <title>KPSS Coğrafya - Harita Çalışması</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
 
+    <header>
+        <button id="toggle-menu">☰ Konular</button>
+        <h1>KPSS Coğrafya Haritaları</h1>
+        <button id="btn-help">? Yardım</button>
+    </header>
+
     <div class="main-container">
-
-        <div class="header-info">
-            <h2 id="soruBasligi">Harita Yükleniyor...</h2>
-            <div class="controls-top">
-                <button onclick="sonrakiSoru()" class="btn-next">Sıradaki <i class="fas fa-arrow-right"></i></button>
+        <aside id="sidebar" class="sidebar">
+            <h3>Konular</h3>
+            <div class="category-list" id="category-list">
             </div>
-        </div>
-
-        <div class="toolbar-container">
-            <div class="tool-group">
-                <button onclick="geriAl()" class="tool-btn" title="Geri Al (Ctrl+Z)"><i
-                        class="fas fa-undo"></i></button>
-                <button onclick="ileriAl()" class="tool-btn" title="İleri Al (Ctrl+Y)"><i
-                        class="fas fa-redo"></i></button>
-                <button onclick="herSeyiTemizle()" class="tool-btn danger" title="Tümünü Temizle"><i
-                        class="fas fa-trash-alt"></i></button>
+            <div class="sidebar-actions">
+                <button id="btn-mix-selected" disabled>Seçilenleri Karıştır</button>
+                <button id="btn-mix-all">Tümünü Karıştır</button>
+                <button id="btn-reset-progress" class="danger">Sıfırla</button>
             </div>
+        </aside>
 
-            <div class="divider"></div>
-
-            <div class="tool-group">
-                <button onclick="aracDegistir('kalem')" class="tool-btn active" id="btnKalem" title="Kalem"><i
-                        class="fas fa-pen"></i></button>
-                <button onclick="aracDegistir('vurgu')" class="tool-btn" id="btnVurgu"
-                    title="Vurgulayıcı (Şeffaf Boya)"><i class="fas fa-highlighter"></i></button>
-                <button onclick="aracDegistir('silgi')" class="tool-btn" id="btnSilgi" title="Silgi"><i
-                        class="fas fa-eraser"></i></button>
-                <button onclick="aracDegistir('yazi')" class="tool-btn" id="btnYazi" title="Metin Ekle"><i
-                        class="fas fa-font"></i></button>
+        <main id="game-area">
+            <div id="info-bar">
+                <span id="current-category-name">Kategori Seçiniz</span>
+                <span id="progress-counter">0 / 0</span>
             </div>
 
-            <div class="divider"></div>
+            <div id="question-box">
+                <h2 id="question-title">Başlamak için soldan bir konu seçin.</h2>
+            </div>
 
-            <div class="tool-group settings">
-                <div class="color-picker-wrapper">
-                    <input type="color" id="renkSecici" value="#e74c3c">
+            <div class="map-container">
+                <img id="base-map" src="images/karışık/bos_harita.jpg" alt="Boş Harita">
+                <canvas id="draw-canvas"></canvas>
+            </div>
+
+            <div class="controls">
+                <div class="tools">
+                    <button onclick="setPenColor('red')" style="background:red;"></button>
+                    <button onclick="setPenColor('blue')" style="background:blue;"></button>
+                    <button onclick="setPenColor('green')" style="background:green;"></button>
+                    <button onclick="clearCanvas()">🗑️ Temizle</button>
                 </div>
-                <input type="range" id="kalinlikAyari" min="1" max="30" value="3" title="Kalem Kalınlığı">
+
+                <div class="actions">
+                    <button id="btn-show-answer" onclick="showAnswer()">Cevabı Gör 👁️</button>
+                    <button id="btn-next" onclick="nextQuestion()" style="display:none;">Sıradaki ➡️</button>
+                </div>
             </div>
 
-            <div class="divider"></div>
-
-            <div class="tool-group">
-                <button onclick="calismayiIndir()" class="tool-btn success" title="Resim Olarak İndir"><i
-                        class="fas fa-download"></i></button>
+            <div id="answer-section" class="answer-box hidden">
+                <h3>✅ Doğru Cevap:</h3>
+                <img id="answer-map" src="" alt="Cevap Haritası">
             </div>
-        </div>
 
-        <div class="canvas-wrapper">
-            <canvas id="cizimAlani"></canvas>
-            <div id="text-layer"></div>
-        </div>
+        </main>
+    </div>
 
-        <div class="tool-group settings">
-            <div class="color-picker-wrapper">
-                <input type="color" id="renkSecici" value="#e74c3c">
-            </div>
-            <label for="kalinlikAyari" style="font-size:12px; color:#555;">Boyut:</label>
-            <input type="range" id="kalinlikAyari" min="10" max="100" value="20" title="Kalem/Yazı Boyutu">
-        </div>
-
-        <div class="info-bar">
-            <span id="soruSayaci">-- / --</span>
-        </div>
-
-        <div class="answer-section">
-            <button onclick="cevabiGosterGizle()" class="btn-answer">Cevap Anahtarını Göster</button>
-            <div id="cevapKutusu" style="display: none;">
-                <img id="cevapGorseli" src="" alt="Cevap Anahtarı">
-            </div>
-        </div>
-
-        <div class="footer-controls">
-            <button onclick="listeyiSifirla()" class="btn-reset">Listeyi Karıştır & Sıfırla</button>
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Nasıl Kullanılır?</h2>
+            <p>1. Sol menüden konu seçin veya konuları işaretleyip karıştırın.</p>
+            <p>2. Gelen başlığa göre boş harita üzerine çiziminizi yapın.</p>
+            <p>3. "Cevabı Gör" butonuna basın.</p>
+            <p>4. Aşağıda açılan doğru cevap haritası ile kendi çiziminizi karşılaştırın.</p>
         </div>
     </div>
 
