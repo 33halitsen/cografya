@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPSS Coğrafya - Harita Çalışması</title>
+    <title>KPSS Coğrafya - Profesyonel Harita</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,23 +12,23 @@
 
     <header>
         <button id="toggle-menu">☰ Konular</button>
-        <h1>KPSS Coğrafya Haritaları</h1>
+        <h1>KPSS Coğrafya Pro</h1>
         <button id="btn-help">? Yardım</button>
     </header>
 
     <div class="main-container">
         <aside id="sidebar" class="sidebar">
             <h3>Konular</h3>
-            <div class="category-list" id="category-list">
-            </div>
+            <div class="category-list" id="category-list"></div>
             <div class="sidebar-actions">
                 <button id="btn-mix-selected" disabled>Seçilenleri Karıştır</button>
                 <button id="btn-mix-all">Tümünü Karıştır</button>
-                <button id="btn-reset-progress" class="danger">Sıfırla</button>
+                <button id="btn-reset-progress" class="danger">İlerlemeyi Sıfırla</button>
             </div>
         </aside>
 
         <main id="game-area">
+
             <div id="info-bar">
                 <span id="current-category-name">Kategori Seçiniz</span>
                 <span id="progress-counter">0 / 0</span>
@@ -38,23 +38,44 @@
                 <h2 id="question-title">Başlamak için soldan bir konu seçin.</h2>
             </div>
 
-            <div class="map-container">
+            <div class="zoom-controls">
+                <span>🔍 Harita Boyutu: </span>
+                <button onclick="changeMapSize(-10)">➖ Küçült</button>
+                <button onclick="resetMapSize()">Varsayılan</button>
+                <button onclick="changeMapSize(10)">➕ Büyüt</button>
+            </div>
+
+            <div class="toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn active" id="btn-brush" onclick="setTool('brush')"
+                        title="Serbest Çizim">✏️</button>
+                    <button class="tool-btn" id="btn-line" onclick="setTool('line')" title="Düz Çizgi">📏</button>
+                    <button class="tool-btn" id="btn-rect" onclick="setTool('rect')" title="Kare">⬜</button>
+                    <button class="tool-btn" id="btn-circle" onclick="setTool('circle')" title="Daire">⭕</button>
+                </div>
+
+                <div class="tool-group">
+                    <input type="color" id="color-picker" value="#ff0000" title="Renk Seç">
+                    <input type="range" id="line-width" min="1" max="20" value="4" title="Kalınlık">
+                </div>
+
+                <div class="tool-group">
+                    <button class="tool-btn" onclick="undo()" title="Geri Al">↩️</button>
+                    <button class="tool-btn" onclick="redo()" title="İleri Al">↪️</button>
+                    <button class="tool-btn danger" onclick="clearCanvas()" title="Temizle">🗑️</button>
+                </div>
+            </div>
+
+            <div class="map-container" id="resizable-container">
                 <img id="base-map" src="images/karışık/bos_harita.jpg" alt="Boş Harita">
                 <canvas id="draw-canvas"></canvas>
             </div>
 
-            <div class="controls">
-                <div class="tools">
-                    <button onclick="setPenColor('red')" style="background:red;"></button>
-                    <button onclick="setPenColor('blue')" style="background:blue;"></button>
-                    <button onclick="setPenColor('green')" style="background:green;"></button>
-                    <button onclick="clearCanvas()">🗑️ Temizle</button>
-                </div>
-
-                <div class="actions">
-                    <button id="btn-show-answer" onclick="showAnswer()">Cevabı Gör 👁️</button>
-                    <button id="btn-next" onclick="nextQuestion()" style="display:none;">Sıradaki ➡️</button>
-                </div>
+            <div class="actions-area">
+                <button id="btn-prev" onclick="prevQuestion()" style="display:none; background-color: #7f8c8d;">⬅️
+                    Önceki</button>
+                <button id="btn-show-answer" onclick="showAnswer()">Cevabı Gör 👁️</button>
+                <button id="btn-next" onclick="nextQuestion()" style="display:none;">Sıradaki ➡️</button>
             </div>
 
             <div id="answer-section" class="answer-box hidden">
@@ -69,10 +90,8 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Nasıl Kullanılır?</h2>
-            <p>1. Sol menüden konu seçin veya konuları işaretleyip karıştırın.</p>
-            <p>2. Gelen başlığa göre boş harita üzerine çiziminizi yapın.</p>
-            <p>3. "Cevabı Gör" butonuna basın.</p>
-            <p>4. Aşağıda açılan doğru cevap haritası ile kendi çiziminizi karşılaştırın.</p>
+            <p><strong>Gezinme:</strong> Önceki ve Sonraki butonları ile sorular arasında gezebilirsiniz.</p>
+            <p><strong>Not:</strong> Yeni soruya geçtiğinizde çizim alanı otomatik temizlenir.</p>
         </div>
     </div>
 

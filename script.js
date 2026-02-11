@@ -1,4 +1,3 @@
-// --- 1. VERİ HAVUZU ---
 const DATA = {
     "Doğal Afetler": {
         path: "images/Doğal_afetler/",
@@ -38,39 +37,35 @@ const DATA = {
     }
 };
 
-// --- GLOBAL DEĞİŞKENLER ---
-let currentState = {
-    mode: null,
-    categoryKey: null,
-    queue: [],
-    currentIndex: 0,
-    displayName: ""
-};
+let currentState = { mode: null, categoryKey: null, queue: [], currentIndex: 0, displayName: "" };
+const STORAGE_KEY_PROGRESS = 'kpss_cografya_progress_v7'; // Versiyon 7
+const STORAGE_KEY_SIZE = 'kpss_map_size_v1';
 
-const STORAGE_KEY = 'kpss_cografya_progress_v4'; // Versiyon 4
+let categoryListEl, questionTitleEl, answerMapEl, answerSectionEl, baseMapEl, canvas, ctx, sidebar, gameAreaEl, resizableContainer;
 
-// Element Referansları
-let categoryListEl, questionTitleEl, answerMapEl, answerSectionEl, baseMapEl, canvas, ctx, sidebar, gameAreaEl;
+let drawingState = { isDrawing: false, tool: 'brush', color: '#ff0000', lineWidth: 4, startX: 0, startY: 0, snapshot: null };
+let history = [];
+let historyStep = -1;
 
-// --- BAŞLANGIÇ ---
 window.onload = () => {
-    // Elementleri Bul
     categoryListEl = document.getElementById('category-list');
     questionTitleEl = document.getElementById('question-title');
     answerMapEl = document.getElementById('answer-map');
-    answerSectionEl = document.getElementById('answer-section'); // Yeni Alan
+    answerSectionEl = document.getElementById('answer-section');
     baseMapEl = document.getElementById('base-map');
     canvas = document.getElementById('draw-canvas');
     ctx = canvas.getContext('2d');
     sidebar = document.getElementById('sidebar');
     gameAreaEl = document.getElementById('game-area');
+    resizableContainer = document.getElementById('resizable-container');
 
     initSidebar();
-    setupCanvas();
+    loadMapSize();
+    setupCanvasEvents();
     setupUIEvents();
+    setupToolEvents();
 };
 
-// --- MENÜ YÖNETİMİ ---
 function initSidebar() {
     categoryListEl.innerHTML = "";
     Object.keys(DATA).forEach(catName => {
@@ -96,29 +91,31 @@ function updateMixButton() {
     }
 }
 
-// --- OYUN MODLARI ---
 function startSingleCategory(catName) {
     let saved = getSavedProgress(catName);
     if (saved && saved.queue.length > 0) {
         currentState = saved;
     } else {
-        const files = DATA[catName].files.map(f => ({
-            path: DATA[catName].path + f,
-            title: cleanFileName(f)
-        }));
-        currentState = {
-            mode: 'single',
-            categoryKey: catName,
-            displayName: catName,
-            queue: shuffleArray(files),
-            currentIndex: 0
-        };
+        const files = DATA[catName].files.map(f => ({ path: DATA[catName].path + f, title: cleanFileName(f) }));
+        currentState = { mode: 'single', categoryKey: catName, displayName: catName, queue: shuffleArray(files), currentIndex: 0 };
     }
     closeSidebarOnMobile();
     loadQuestion();
 }
 
-// --- OYUN DÖNGÜSÜ ---
+function startMixedMode(storageKey, pool, displayName) {
+    let saved = getSavedProgress(storageKey);
+    if (saved && saved.queue.length > 0) {
+        currentState = saved;
+    } else {
+        currentState = { mode: 'mixed', categoryKey: storageKey, displayName: displayName, queue: shuffleArray(pool), currentIndex: 0 };
+    }
+    closeSidebarOnMobile();
+    loadQuestion();
+}
+
+// --- SORU YÜKLEME VE NAVİGASYON ---
+
 function loadQuestion() {
     if (!currentState.queue || currentState.queue.length === 0) return;
 
@@ -135,161 +132,142 @@ function loadQuestion() {
     document.getElementById('progress-counter').innerText = `${currentState.currentIndex + 1} / ${currentState.queue.length}`;
     questionTitleEl.innerText = currentQ.title;
 
-    // CEVAP KISMINI GİZLE
+    // Arayüzü Sıfırla (Cevap Gizle)
     answerSectionEl.classList.add('hidden');
-    answerMapEl.src = ""; // Boşalt
+    answerMapEl.src = "";
 
-    // Butonları ayarla
-    document.getElementById('btn-show-answer').style.display = 'inline-block';
-    document.getElementById('btn-next').style.display = 'none';
+    // Buton Kontrolü
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnShow = document.getElementById('btn-show-answer');
 
-    // Çizimi temizle
-    clearCanvas();
+    btnShow.style.display = 'inline-block';
+    btnNext.style.display = 'none';
+
+    // İlk sorudaysa "Önceki" butonunu gizle
+    if (currentState.currentIndex > 0) {
+        btnPrev.style.display = 'inline-block';
+    } else {
+        btnPrev.style.display = 'none';
+    }
+
+    // --- ÇİZİM VE GEÇMİŞİ SIFIRLAMA (ÖNEMLİ KISIM) ---
+    // Tarihçeyi ve canvas'ı tamamen sıfırlıyoruz ki eski çizim gelmesin.
+    history = [];
+    historyStep = -1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Hemen temizle
+
+    // Resim yeniden boyutlanınca da temiz kalsın
+    setTimeout(() => {
+        resizeCanvas(); // Boyutlandır
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Tekrar temizle
+        saveHistory(); // Boş hali ilk adım olarak kaydet
+    }, 50);
+
     saveProgress();
 }
 
-// --- BUTON FONKSİYONLARI ---
-
+// Navigasyon Fonksiyonları
 window.showAnswer = function () {
-    // Şu anki soruyu al
     const currentQ = currentState.queue[currentState.currentIndex];
-
-    // Cevap resmini yükle
     answerMapEl.src = currentQ.path;
-
-    // Cevap kutusunu görünür yap
     answerSectionEl.classList.remove('hidden');
-
-    // Butonları değiştir
     document.getElementById('btn-show-answer').style.display = 'none';
     document.getElementById('btn-next').style.display = 'inline-block';
-
-    // Otomatik olarak aşağı kaydır
-    setTimeout(() => {
-        answerSectionEl.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    setTimeout(() => { answerSectionEl.scrollIntoView({ behavior: 'smooth' }); }, 100);
 };
 
 window.nextQuestion = function () {
     currentState.currentIndex++;
     loadQuestion();
-    // Sayfayı yukarı kaydır
     gameAreaEl.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// --- DİĞER FONKSİYONLAR ---
-window.startSelectedMix = function () {
-    const checked = document.querySelectorAll('.cat-checkbox:checked');
-    if (checked.length === 0) return;
-    let pool = [];
-    let keys = [];
-    checked.forEach(cb => {
-        let catName = cb.value;
-        keys.push(catName);
-        DATA[catName].files.forEach(f => {
-            pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) + ` (${catName})` });
-        });
-    });
-    const mixKey = "custom_mix_" + keys.sort().join('_');
-    startMixedMode(mixKey, pool, "Özel Karışık");
-};
-
-window.startAllMix = function () {
-    let pool = [];
-    Object.keys(DATA).forEach(catName => {
-        DATA[catName].files.forEach(f => {
-            pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) });
-        });
-    });
-    startMixedMode("all_mixed", pool, "Tüm Konular");
-};
-
-function startMixedMode(storageKey, pool, displayName) {
-    let saved = getSavedProgress(storageKey);
-    if (saved && saved.queue.length > 0) {
-        currentState = saved;
-    } else {
-        currentState = {
-            mode: 'mixed',
-            categoryKey: storageKey,
-            displayName: displayName,
-            queue: shuffleArray(pool),
-            currentIndex: 0
-        };
-    }
-    closeSidebarOnMobile();
-    loadQuestion();
-}
-
-window.resetProgress = function () {
-    if (confirm("Tüm kayıtlar silinsin mi?")) {
-        localStorage.removeItem(STORAGE_KEY);
-        location.reload();
+window.prevQuestion = function () {
+    if (currentState.currentIndex > 0) {
+        currentState.currentIndex--;
+        loadQuestion();
+        gameAreaEl.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 
-function cleanFileName(filename) {
-    return filename.replace(/\.(jpg|jpeg|png)$/i, '').replace(/_/g, ' ');
+// --- YARDIMCILAR ---
+function cleanFileName(filename) { return filename.replace(/\.(jpg|jpeg|png)$/i, '').replace(/_/g, ' '); }
+function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]]; } return array; }
+function saveProgress() { try { let allProgress = JSON.parse(localStorage.getItem(STORAGE_KEY_PROGRESS)) || {}; allProgress[currentState.categoryKey] = currentState; localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(allProgress)); } catch (e) { } }
+function getSavedProgress(key) { try { return JSON.parse(localStorage.getItem(STORAGE_KEY_PROGRESS))[key]; } catch (e) { return null; } }
+
+// --- BOYUTLANDIRMA (ZOOM) ---
+window.changeMapSize = function (delta) {
+    let currentWidth = parseInt(resizableContainer.style.width) || 100;
+    let newWidth = currentWidth + delta;
+    if (newWidth < 30) newWidth = 30;
+    if (newWidth > 200) newWidth = 200;
+    applyMapSize(newWidth);
+};
+window.resetMapSize = function () { applyMapSize(100); };
+function applyMapSize(sizePercent) {
+    resizableContainer.style.width = sizePercent + "%";
+    answerSectionEl.style.width = sizePercent + "%";
+    localStorage.setItem(STORAGE_KEY_SIZE, sizePercent);
+}
+function loadMapSize() {
+    let savedSize = localStorage.getItem(STORAGE_KEY_SIZE);
+    if (savedSize) applyMapSize(parseInt(savedSize));
+    else applyMapSize(100);
 }
 
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
-function saveProgress() {
-    try {
-        let allProgress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        allProgress[currentState.categoryKey] = {
-            mode: currentState.mode,
-            categoryKey: currentState.categoryKey,
-            queue: currentState.queue,
-            currentIndex: currentState.currentIndex,
-            displayName: currentState.displayName
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allProgress));
-    } catch (e) { }
-}
-
-function getSavedProgress(key) {
-    try {
-        let allProgress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        return allProgress[key];
-    } catch (e) { return null; }
-}
-
-// --- CANVAS AYARLARI ---
-let isDrawing = false;
-let penColor = 'red';
-
-function setupCanvas() {
+// --- ÇİZİM SİSTEMİ ---
+function setupCanvasEvents() {
     if (baseMapEl.complete) resizeCanvas();
     else baseMapEl.onload = resizeCanvas;
     window.addEventListener('resize', resizeCanvas);
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseout', stopDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw);
 }
 
 function resizeCanvas() {
     canvas.width = baseMapEl.clientWidth;
     canvas.height = baseMapEl.clientHeight;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = penColor;
+    // Geçmişten geri yükle (Eğer aynı sorudaysak)
+    if (history.length > 0 && historyStep >= 0) {
+        let img = new Image();
+        img.src = history[historyStep];
+        img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+    }
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
 }
 
-function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function setupToolEvents() {
+    document.getElementById('color-picker').onchange = (e) => drawingState.color = e.target.value;
+    document.getElementById('line-width').oninput = (e) => drawingState.lineWidth = e.target.value;
 }
-
-window.setPenColor = (color) => {
-    penColor = color;
-    ctx.strokeStyle = color;
+window.setTool = function (toolName) {
+    drawingState.tool = toolName;
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    let btn = document.getElementById('btn-' + toolName);
+    if (btn) btn.classList.add('active');
 };
 
-// KOORDİNAT HESAPLAMA (Çizim Kaymasını Önleyen Kısım)
+function saveHistory() {
+    historyStep++;
+    if (historyStep < history.length) { history.length = historyStep; }
+    history.push(canvas.toDataURL());
+}
+window.undo = function () { if (historyStep > 0) { historyStep--; redrawHistory(); } };
+window.redo = function () { if (historyStep < history.length - 1) { historyStep++; redrawHistory(); } };
+function redrawHistory() {
+    let img = new Image();
+    img.src = history[historyStep];
+    img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0); };
+}
+window.clearCanvas = function () { ctx.clearRect(0, 0, canvas.width, canvas.height); saveHistory(); };
+
 const getPos = (e) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -298,50 +276,44 @@ const getPos = (e) => {
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 };
-
 const startDraw = (e) => {
     if (e.cancelable) e.preventDefault();
-    isDrawing = true;
-    ctx.beginPath();
+    drawingState.isDrawing = true;
     const pos = getPos(e);
-    ctx.moveTo(pos.x, pos.y);
+    drawingState.startX = pos.x; drawingState.startY = pos.y;
+    drawingState.snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    ctx.beginPath(); ctx.lineWidth = drawingState.lineWidth; ctx.strokeStyle = drawingState.color;
+    if (drawingState.tool === 'brush') ctx.moveTo(pos.x, pos.y);
 };
-
 const draw = (e) => {
-    if (!isDrawing) return;
+    if (!drawingState.isDrawing) return;
     if (e.cancelable) e.preventDefault();
     const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
+    if (drawingState.tool === 'brush') { ctx.lineTo(pos.x, pos.y); ctx.stroke(); }
+    else {
+        ctx.putImageData(drawingState.snapshot, 0, 0); ctx.beginPath();
+        if (drawingState.tool === 'line') { ctx.moveTo(drawingState.startX, drawingState.startY); ctx.lineTo(pos.x, pos.y); ctx.stroke(); }
+        else if (drawingState.tool === 'rect') { let w = pos.x - drawingState.startX; let h = pos.y - drawingState.startY; ctx.strokeRect(drawingState.startX, drawingState.startY, w, h); }
+        else if (drawingState.tool === 'circle') { let radius = Math.sqrt(Math.pow(pos.x - drawingState.startX, 2) + Math.pow(pos.y - drawingState.startY, 2)); ctx.arc(drawingState.startX, drawingState.startY, radius, 0, 2 * Math.PI); ctx.stroke(); }
+    }
 };
+const stopDraw = () => { if (!drawingState.isDrawing) return; drawingState.isDrawing = false; ctx.beginPath(); saveHistory(); };
 
-const stopDraw = () => { isDrawing = false; ctx.beginPath(); };
-
-canvas.addEventListener('mousedown', startDraw);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDraw);
-canvas.addEventListener('mouseout', stopDraw);
-canvas.addEventListener('touchstart', startDraw, { passive: false });
-canvas.addEventListener('touchmove', draw, { passive: false });
-canvas.addEventListener('touchend', stopDraw);
-
-// UI Events
+window.startSelectedMix = function () {
+    const checked = document.querySelectorAll('.cat-checkbox:checked');
+    if (checked.length === 0) return;
+    let pool = []; let keys = [];
+    checked.forEach(cb => { let catName = cb.value; keys.push(catName); DATA[catName].files.forEach(f => { pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) + ` (${catName})` }); }); });
+    const mixKey = "custom_mix_" + keys.sort().join('_'); startMixedMode(mixKey, pool, "Özel Karışık");
+};
+window.startAllMix = function () {
+    let pool = []; Object.keys(DATA).forEach(catName => { DATA[catName].files.forEach(f => { pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) }); }); });
+    startMixedMode("all_mixed", pool, "Tüm Konular");
+};
+window.resetProgress = function () { if (confirm("Tüm kayıtlar silinsin mi?")) { localStorage.removeItem(STORAGE_KEY_PROGRESS); localStorage.removeItem(STORAGE_KEY_SIZE); location.reload(); } };
 function setupUIEvents() {
-    const toggleBtn = document.getElementById('toggle-menu');
-    const helpBtn = document.getElementById('btn-help');
-    const modal = document.getElementById('help-modal');
-    const closeModal = document.querySelector('.close-modal');
-
-    document.getElementById('btn-mix-selected').onclick = window.startSelectedMix;
-    document.getElementById('btn-mix-all').onclick = window.startAllMix;
-    document.getElementById('btn-reset-progress').onclick = window.resetProgress;
-
-    if (toggleBtn) toggleBtn.onclick = () => sidebar.classList.toggle('open');
-    if (helpBtn) helpBtn.onclick = () => modal.classList.remove('hidden');
-    if (closeModal) closeModal.onclick = () => modal.classList.add('hidden');
-    window.onclick = (e) => { if (e.target == modal) modal.classList.add('hidden'); };
+    const toggleBtn = document.getElementById('toggle-menu'); const helpBtn = document.getElementById('btn-help'); const modal = document.getElementById('help-modal'); const closeModal = document.querySelector('.close-modal');
+    document.getElementById('btn-mix-selected').onclick = window.startSelectedMix; document.getElementById('btn-mix-all').onclick = window.startAllMix; document.getElementById('btn-reset-progress').onclick = window.resetProgress;
+    if (toggleBtn) toggleBtn.onclick = () => sidebar.classList.toggle('open'); if (helpBtn) helpBtn.onclick = () => modal.classList.remove('hidden'); if (closeModal) closeModal.onclick = () => modal.classList.add('hidden'); window.onclick = (e) => { if (e.target == modal) modal.classList.add('hidden'); };
 }
-
-function closeSidebarOnMobile() {
-    if (window.innerWidth <= 768) sidebar.classList.remove('open');
-}
+function closeSidebarOnMobile() { if (window.innerWidth <= 768) sidebar.classList.remove('open'); }
