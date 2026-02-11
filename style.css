@@ -392,3 +392,42 @@ header button:hover {
         justify-content: center;
     }
 }
+
+
+/* Arama Sonuçları Listesi */
+.search-results {
+    position: absolute;
+    top: 42px;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #333;
+}
+
+.search-result-item:hover {
+    background-color: #e3f2fd;
+}
+
+.search-result-item small {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.75rem;
+}
+
+.hidden {
+    display: none !important;
+}

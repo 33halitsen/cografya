@@ -29,7 +29,7 @@ const DATA = {
     },
     "Yer Şekilleri": {
         path: "images/yer_şekilleri/",
-        files: ["Akarsular.jpg", "Alüvyon_set_gölleri.jpg", "baraj_gölleri.jpg", "Buzul_göller.jpg", "Doğal_göller.jpg", "elma.jpg", "heyelan_set_gölleri.jpg", "karstik_göller.jpg", "karstik_ovalar.jpg", "kırık_dağlar.jpg", "kıvrım_dağları.jpg", "kıyı_ovaları.jpg", "Kıyı_set_gölleri.jpg", "platolar.jpg", "tektonik_ovalar.jpg", "traverten_set_gölleri.jpg", "Üzüm.jpg", "Volkanik_dağlar.jpg", "volkanik_göller.jpg", "Volkanik_ovalar.jpg", "volkanik_set_gölleri.jpg"]
+        files: ["Akarsular.jpg", "Alüvyon_set_gölleri.jpg", "baraj_gölleri.jpg", "Buzul_göller.jpg", "Doğal_göller.jpg", "heyelan_set_gölleri.jpg", "karstik_göller.jpg", "karstik_ovalar.jpg", "kırık_dağlar.jpg", "kıvrım_dağları.jpg", "kıyı_ovaları.jpg", "Kıyı_set_gölleri.jpg", "platolar.jpg", "tektonik_ovalar.jpg", "traverten_set_gölleri.jpg", "Volkanik_dağlar.jpg", "volkanik_göller.jpg", "Volkanik_ovalar.jpg", "volkanik_set_gölleri.jpg"]
     },
     "Karışık / Diğer": {
         path: "images/karışık/",
@@ -38,11 +38,10 @@ const DATA = {
 };
 
 let currentState = { mode: null, categoryKey: null, queue: [], currentIndex: 0, displayName: "" };
-const STORAGE_KEY_PROGRESS = 'kpss_cografya_progress_v7'; // Versiyon 7
+const STORAGE_KEY_PROGRESS = 'kpss_cografya_progress_v7';
 const STORAGE_KEY_SIZE = 'kpss_map_size_v1';
 
 let categoryListEl, questionTitleEl, answerMapEl, answerSectionEl, baseMapEl, canvas, ctx, sidebar, gameAreaEl, resizableContainer;
-
 let drawingState = { isDrawing: false, tool: 'brush', color: '#ff0000', lineWidth: 4, startX: 0, startY: 0, snapshot: null };
 let history = [];
 let historyStep = -1;
@@ -64,8 +63,86 @@ window.onload = () => {
     setupCanvasEvents();
     setupUIEvents();
     setupToolEvents();
+    setupSearch(); // Yeni Arama Motorunu Başlat
 };
 
+// --- ARAMA MOTORU SİSTEMİ ---
+function setupSearch() {
+    const searchInput = document.getElementById('map-search');
+    const resultsDiv = document.getElementById('search-results');
+
+    searchInput.oninput = (e) => {
+        const term = e.target.value.toLocaleLowerCase('tr').trim();
+
+        if (term.length < 2) {
+            resultsDiv.classList.add('hidden');
+            return;
+        }
+
+        let matches = [];
+        Object.keys(DATA).forEach(cat => {
+            DATA[cat].files.forEach(file => {
+                const title = cleanFileName(file);
+                if (title.toLocaleLowerCase('tr').includes(term)) {
+                    matches.push({
+                        category: cat,
+                        fileName: file,
+                        title: title,
+                        path: DATA[cat].path + file
+                    });
+                }
+            });
+        });
+
+        renderSearchResults(matches);
+    };
+
+    // Dışarı tıklayınca sonuçları kapat
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.classList.add('hidden');
+        }
+    });
+}
+
+function renderSearchResults(matches) {
+    const resultsDiv = document.getElementById('search-results');
+    resultsDiv.innerHTML = "";
+
+    if (matches.length === 0) {
+        resultsDiv.innerHTML = '<div class="search-result-item">Sonuç bulunamadı...</div>';
+        resultsDiv.classList.remove('hidden');
+        return;
+    }
+
+    matches.forEach(match => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.innerHTML = `<strong>${match.title}</strong><small>${match.category}</small>`;
+        item.onclick = () => {
+            selectSearchQuestion(match);
+            document.getElementById('map-search').value = "";
+            resultsDiv.classList.add('hidden');
+        };
+        resultsDiv.appendChild(item);
+    });
+    resultsDiv.classList.remove('hidden');
+}
+
+function selectSearchQuestion(match) {
+    // Arama sonucunu tek soruluk bir soru formatında yükle
+    currentState = {
+        mode: 'search',
+        categoryKey: 'search_mode',
+        displayName: "Arama Sonucu",
+        queue: [{ path: match.path, title: match.title }],
+        currentIndex: 0
+    };
+    closeSidebarOnMobile();
+    loadQuestion();
+}
+
+// --- MEVCUT SİSTEMİN DİĞER FONKSİYONLARI ---
 function initSidebar() {
     categoryListEl.innerHTML = "";
     Object.keys(DATA).forEach(catName => {
@@ -103,19 +180,6 @@ function startSingleCategory(catName) {
     loadQuestion();
 }
 
-function startMixedMode(storageKey, pool, displayName) {
-    let saved = getSavedProgress(storageKey);
-    if (saved && saved.queue.length > 0) {
-        currentState = saved;
-    } else {
-        currentState = { mode: 'mixed', categoryKey: storageKey, displayName: displayName, queue: shuffleArray(pool), currentIndex: 0 };
-    }
-    closeSidebarOnMobile();
-    loadQuestion();
-}
-
-// --- SORU YÜKLEME VE NAVİGASYON ---
-
 function loadQuestion() {
     if (!currentState.queue || currentState.queue.length === 0) return;
 
@@ -126,17 +190,13 @@ function loadQuestion() {
     }
 
     const currentQ = currentState.queue[currentState.currentIndex];
-
-    // Bilgileri Güncelle
     document.getElementById('current-category-name').innerText = currentState.displayName;
     document.getElementById('progress-counter').innerText = `${currentState.currentIndex + 1} / ${currentState.queue.length}`;
     questionTitleEl.innerText = currentQ.title;
 
-    // Arayüzü Sıfırla (Cevap Gizle)
     answerSectionEl.classList.add('hidden');
     answerMapEl.src = "";
 
-    // Buton Kontrolü
     const btnPrev = document.getElementById('btn-prev');
     const btnNext = document.getElementById('btn-next');
     const btnShow = document.getElementById('btn-show-answer');
@@ -144,30 +204,22 @@ function loadQuestion() {
     btnShow.style.display = 'inline-block';
     btnNext.style.display = 'none';
 
-    // İlk sorudaysa "Önceki" butonunu gizle
-    if (currentState.currentIndex > 0) {
-        btnPrev.style.display = 'inline-block';
-    } else {
-        btnPrev.style.display = 'none';
-    }
+    if (currentState.currentIndex > 0) btnPrev.style.display = 'inline-block';
+    else btnPrev.style.display = 'none';
 
-    // --- ÇİZİM VE GEÇMİŞİ SIFIRLAMA (ÖNEMLİ KISIM) ---
-    // Tarihçeyi ve canvas'ı tamamen sıfırlıyoruz ki eski çizim gelmesin.
     history = [];
     historyStep = -1;
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Hemen temizle
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Resim yeniden boyutlanınca da temiz kalsın
     setTimeout(() => {
-        resizeCanvas(); // Boyutlandır
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Tekrar temizle
-        saveHistory(); // Boş hali ilk adım olarak kaydet
+        resizeCanvas();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        saveHistory();
     }, 50);
 
     saveProgress();
 }
 
-// Navigasyon Fonksiyonları
 window.showAnswer = function () {
     const currentQ = currentState.queue[currentState.currentIndex];
     answerMapEl.src = currentQ.path;
@@ -191,13 +243,18 @@ window.prevQuestion = function () {
     }
 };
 
-// --- YARDIMCILAR ---
 function cleanFileName(filename) { return filename.replace(/\.(jpg|jpeg|png)$/i, '').replace(/_/g, ' '); }
-function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]]; } return array; }
+function shuffleArray(array) {
+    let newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+}
 function saveProgress() { try { let allProgress = JSON.parse(localStorage.getItem(STORAGE_KEY_PROGRESS)) || {}; allProgress[currentState.categoryKey] = currentState; localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(allProgress)); } catch (e) { } }
 function getSavedProgress(key) { try { return JSON.parse(localStorage.getItem(STORAGE_KEY_PROGRESS))[key]; } catch (e) { return null; } }
 
-// --- BOYUTLANDIRMA (ZOOM) ---
 window.changeMapSize = function (delta) {
     let currentWidth = parseInt(resizableContainer.style.width) || 100;
     let newWidth = currentWidth + delta;
@@ -217,7 +274,6 @@ function loadMapSize() {
     else applyMapSize(100);
 }
 
-// --- ÇİZİM SİSTEMİ ---
 function setupCanvasEvents() {
     if (baseMapEl.complete) resizeCanvas();
     else baseMapEl.onload = resizeCanvas;
@@ -234,7 +290,6 @@ function setupCanvasEvents() {
 function resizeCanvas() {
     canvas.width = baseMapEl.clientWidth;
     canvas.height = baseMapEl.clientHeight;
-    // Geçmişten geri yükle (Eğer aynı sorudaysak)
     if (history.length > 0 && historyStep >= 0) {
         let img = new Image();
         img.src = history[historyStep];
@@ -299,21 +354,41 @@ const draw = (e) => {
 };
 const stopDraw = () => { if (!drawingState.isDrawing) return; drawingState.isDrawing = false; ctx.beginPath(); saveHistory(); };
 
-window.startSelectedMix = function () {
-    const checked = document.querySelectorAll('.cat-checkbox:checked');
-    if (checked.length === 0) return;
-    let pool = []; let keys = [];
-    checked.forEach(cb => { let catName = cb.value; keys.push(catName); DATA[catName].files.forEach(f => { pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) + ` (${catName})` }); }); });
-    const mixKey = "custom_mix_" + keys.sort().join('_'); startMixedMode(mixKey, pool, "Özel Karışık");
-};
 window.startAllMix = function () {
     let pool = []; Object.keys(DATA).forEach(catName => { DATA[catName].files.forEach(f => { pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) }); }); });
     startMixedMode("all_mixed", pool, "Tüm Konular");
 };
+
+function startMixedMode(storageKey, pool, displayName) {
+    let saved = getSavedProgress(storageKey);
+    if (saved && saved.queue.length > 0) {
+        currentState = saved;
+    } else {
+        currentState = { mode: 'mixed', categoryKey: storageKey, displayName: displayName, queue: shuffleArray(pool), currentIndex: 0 };
+    }
+    closeSidebarOnMobile();
+    loadQuestion();
+}
+
 window.resetProgress = function () { if (confirm("Tüm kayıtlar silinsin mi?")) { localStorage.removeItem(STORAGE_KEY_PROGRESS); localStorage.removeItem(STORAGE_KEY_SIZE); location.reload(); } };
 function setupUIEvents() {
     const toggleBtn = document.getElementById('toggle-menu'); const helpBtn = document.getElementById('btn-help'); const modal = document.getElementById('help-modal'); const closeModal = document.querySelector('.close-modal');
-    document.getElementById('btn-mix-selected').onclick = window.startSelectedMix; document.getElementById('btn-mix-all').onclick = window.startAllMix; document.getElementById('btn-reset-progress').onclick = window.resetProgress;
-    if (toggleBtn) toggleBtn.onclick = () => sidebar.classList.toggle('open'); if (helpBtn) helpBtn.onclick = () => modal.classList.remove('hidden'); if (closeModal) closeModal.onclick = () => modal.classList.add('hidden'); window.onclick = (e) => { if (e.target == modal) modal.classList.add('hidden'); };
+    document.getElementById('btn-mix-selected').onclick = () => {
+        const checked = document.querySelectorAll('.cat-checkbox:checked');
+        if (checked.length === 0) return;
+        let pool = []; let keys = [];
+        checked.forEach(cb => {
+            let catName = cb.value; keys.push(catName);
+            DATA[catName].files.forEach(f => { pool.push({ path: DATA[catName].path + f, title: cleanFileName(f) + ` (${catName})` }); });
+        });
+        const mixKey = "custom_mix_" + keys.sort().join('_');
+        startMixedMode(mixKey, pool, "Özel Karışık");
+    };
+    document.getElementById('btn-mix-all').onclick = window.startAllMix;
+    document.getElementById('btn-reset-progress').onclick = window.resetProgress;
+    if (toggleBtn) toggleBtn.onclick = () => sidebar.classList.toggle('open');
+    if (helpBtn) helpBtn.onclick = () => modal.classList.remove('hidden');
+    if (closeModal) closeModal.onclick = () => modal.classList.add('hidden');
+    window.onclick = (e) => { if (e.target == modal) modal.classList.add('hidden'); };
 }
 function closeSidebarOnMobile() { if (window.innerWidth <= 768) sidebar.classList.remove('open'); }

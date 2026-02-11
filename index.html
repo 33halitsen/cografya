@@ -19,6 +19,11 @@
     <div class="main-container">
         <aside id="sidebar" class="sidebar">
             <h3>Konular</h3>
+            <div class="search-container" style="margin-bottom: 15px; position: relative;">
+                <input type="text" id="map-search" placeholder="Harita ara... (örn: bor)"
+                    style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;">
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
             <div class="category-list" id="category-list"></div>
             <div class="sidebar-actions">
                 <button id="btn-mix-selected" disabled>Seçilenleri Karıştır</button>
