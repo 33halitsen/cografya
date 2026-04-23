@@ -51,18 +51,32 @@ header button:hover {
     flex: 1;
     overflow: hidden;
     position: relative;
+    width: 100%;
 }
 
+/* YAN MENÜ (SIDEBAR) */
 .sidebar {
     width: 260px;
+    min-width: 260px;
     background: white;
     border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
     padding: 15px;
     overflow-y: auto;
-    transition: transform 0.3s ease;
+    overflow-x: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 200;
+    box-sizing: border-box;
+}
+
+.sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: none;
+    opacity: 0;
+    margin-left: 0;
 }
 
 .category-item {
@@ -72,6 +86,7 @@ header button:hover {
     border-bottom: 1px solid #f1f1f1;
     cursor: pointer;
     border-radius: 5px;
+    white-space: nowrap;
 }
 
 .category-item:hover {
@@ -105,6 +120,7 @@ header button:hover {
     cursor: not-allowed;
 }
 
+/* OYUN ALANI */
 #game-area {
     flex: 1;
     padding: 20px;
@@ -113,6 +129,8 @@ header button:hover {
     align-items: center;
     overflow-y: auto;
     background-color: #f4f4f9;
+    width: 100%;
+    transition: width 0.3s ease;
 }
 
 #info-bar {
@@ -158,6 +176,7 @@ header button:hover {
     transform: scale(1.05);
 }
 
+/* ÇİZİM ARAÇLARI */
 .toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -233,6 +252,7 @@ header button:hover {
     cursor: pointer;
 }
 
+/* HARİTA VE ÇİZİM ALANI */
 .map-container {
     position: relative;
     width: 100%;
@@ -264,6 +284,7 @@ header button:hover {
     cursor: crosshair;
 }
 
+/* BUTONLAR (ÖNCEKİ / SONRAKİ) */
 .actions-area {
     width: 100%;
     max-width: 500px;
@@ -299,6 +320,7 @@ header button:hover {
     background: #219150;
 }
 
+/* CEVAP KUTUSU */
 .answer-box {
     width: 100%;
     border: 3px solid var(--success);
@@ -328,6 +350,7 @@ header button:hover {
     display: none !important;
 }
 
+/* YARDIM MODALI */
 .modal {
     position: fixed;
     top: 0;
@@ -359,6 +382,7 @@ header button:hover {
     color: #aaa;
 }
 
+/* MOBİL TASARIM */
 @media (max-width: 768px) {
     .sidebar {
         position: fixed;
@@ -369,7 +393,10 @@ header button:hover {
 
     .sidebar.open {
         left: 0;
-        transform: translateX(0);
+        width: 260px !important;
+        min-width: 260px !important;
+        padding: 15px !important;
+        opacity: 1 !important;
     }
 
     .toolbar {
@@ -393,8 +420,7 @@ header button:hover {
     }
 }
 
-
-/* Arama Sonuçları Listesi */
+/* ARAMA SONUÇLARI */
 .search-results {
     position: absolute;
     top: 42px;
@@ -428,6 +454,77 @@ header button:hover {
     font-size: 0.75rem;
 }
 
-.hidden {
-    display: none !important;
+/* --- YENİ EKLENEN NOT KUTULARI STİLLERİ --- */
+.note-box {
+    width: 100%;
+    max-width: 600px;
+    margin: 15px auto;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+.note-box label {
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+/* Not kutularının genel ayarları */
+.note-box textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+
+    /* Önemli: Başlangıç boyutu ve yönetilebilirlik */
+    height: 150px;
+    /* Varsayılan açılış boyutu (Geçici notlar için) */
+    resize: vertical;
+    /* Sadece dikeyde boyutlandırmaya izin verir */
+}
+
+.note-box textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.permanent-note-box {
+    margin-top: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Kalıcı not kutusuna özel başlangıç boyutu */
+.permanent-note-box textarea {
+    border-color: var(--success);
+    height: 300px;
+    /* Varsayılan açılış boyutu (Kalıcı notlar için daha büyük) */
+}
+
+.save-status {
+    color: var(--success);
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 8px;
+    text-align: right;
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+
+#temp-note-section {
+    border: 2px dashed #3498db;
+    /* Kesikli mavi kenarlık tahmin olduğunu belli eder */
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #f0f7ff;
 }

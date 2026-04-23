@@ -76,18 +76,28 @@
                 <canvas id="draw-canvas"></canvas>
             </div>
 
+            <div id="temp-note-section" class="note-box" style="display:none;">
+                <label for="temp-note">💡 Tahminleriniz / Beyin Fırtınası (Kaydedilmez):</label>
+                <textarea id="temp-note" rows="3"
+                    placeholder="Cevaba bakmadan önce aklınıza gelenleri buraya yazabilirsiniz..."></textarea>
+            </div>
+            <div id="answer-section" class="answer-box hidden">
+                <h3>✅ Doğru Cevap:</h3>
+                <img id="answer-map" src="" alt="Cevap Haritası">
+
+                <div class="note-box permanent-note-box">
+                    <label for="permanent-note">📝 Bu Harita İçin Çalışma Notunuz:</label>
+                    <textarea id="permanent-note" rows="4"
+                        placeholder="Sonraki soruya geçtiğinizde otomatik olarak kaydedilir..."></textarea>
+                    <span id="save-status" class="save-status hidden">✅ Not Kaydedildi!</span>
+                </div>
+            </div>
             <div class="actions-area">
                 <button id="btn-prev" onclick="prevQuestion()" style="display:none; background-color: #7f8c8d;">⬅️
                     Önceki</button>
                 <button id="btn-show-answer" onclick="showAnswer()">Cevabı Gör 👁️</button>
                 <button id="btn-next" onclick="nextQuestion()" style="display:none;">Sıradaki ➡️</button>
             </div>
-
-            <div id="answer-section" class="answer-box hidden">
-                <h3>✅ Doğru Cevap:</h3>
-                <img id="answer-map" src="" alt="Cevap Haritası">
-            </div>
-
         </main>
     </div>
 
